@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" id="WebApp_ID" version="2.5">
+
+	<!--
+		Servlet Context Listner class designation.
+
+		This will call the standard servlet class contextInitialized() / contextDestroyed()
+		on server startup or shutdown. (See: https://tomcat.apache.org/tomcat-5.5-doc/servletapi/javax/servlet/ServletContextListener.html)
+
+		Which in turn will call the picoded.servlet initializeContext() / destroyContext()
+		that handles all the common setup of pages, and background thread process
+	-->
+	<listener>
+		<listener-class>demo.HelloServlet</listener-class>
+	</listener>
+
+	<!--
+		The core servlet base implementation.
+
+		Automatically handle the handlign of file serving for files outside of WEB-INF,
+		and / or API linkages (atleast in theory, it currently bugged)
+
+		The final idea is that, in most cases, this would be the only servlet needed.
+	-->
+
+	<servlet>
+		<display-name>ServletBase</display-name>
+		<servlet-name>ServletBase</servlet-name>
+		<servlet-class>demo.HelloServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>ServletBase</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>ServletBase</servlet-name>
+		<url-pattern>/*</url-pattern>
+	</servlet-mapping>
+
+</web-app>

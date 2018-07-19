@@ -1,0 +1,247 @@
+<project name="picoded.JavaCommons.ServletBase" default="source" xmlns:jacoco="antlib:org.jacoco.ant">
+	<property name="ant.build.javac.source" value="1.8"/>
+	<property name="ant.build.javac.target" value="1.8"/>
+
+	<!--
+	#
+	# Project setup
+	#
+	-->
+	<property name='lib.dir' value='${basedir}/lib' />
+	<property name='classes.dir' value='${basedir}/classes' />
+	<property name='src.dir' value='${basedir}/src' />
+	<property name='build.dir' value='${basedir}/build' />
+
+	<property name='test.src.dir' value='${basedir}/test' />
+	<property name='test.file.dir' value='${basedir}/test-files' />
+	<property name='test.tmp.dir' value='${basedir}/test-files/tmp' />
+
+	<!-- <property name="junit.reports" value="${basedir}/test-files/junit-reports"/>
+	<property name="junit.html" value="${basedir}/test-files/junit-html" />
+	<property name="junit.lib" value="${basedir}/build-tools/junit" /> -->
+
+	<!-- Cleans out all compiled code-->
+	<target name="clean">
+		<delete dir="${classes.dir}" failonerror="false"/>
+		<delete dir="${build.dir}" failonerror="false"/>
+		<!-- <delete dir="${junit.reports}" failonerror="false"/> -->
+		<delete dir="${test.tmp.dir}" failonerror="false" followsymlinks="false" removenotfollowedsymlinks="true"/>
+	</target>
+
+	<!-- ensures the required folders are setup -->
+	<target name="init">
+		<mkdir dir="${build.dir}" />
+		<mkdir dir="${classes.dir}" />
+		<mkdir dir="${test.tmp.dir}" />
+	</target>
+
+	<!--
+	#
+	# JavaCommons setup
+	#
+	-->
+
+	<!-- JavaCommons library location -->
+	<property name='javacommons.lib.git.http' value='https://github.com/picoded/JavaCommons-gradle.git' />
+	<property name='javacommons.lib.src.dir' value='${basedir}/JavaCommons-gradle' />
+	<property name='javacommons.lib.build.dir' value='${basedir}/JavaCommons-gradle/build/libs' />
+	<property name='webinf.lib.dir' value='${basedir}/lib' />
+
+	<!-- Clone (if needed) and pull the JavaCommons library -->
+	<target name="pullJavaCommons">
+		<git-clone-pull repository="${javacommons.lib.git.http}" dest="${javacommons.lib.src.dir}" />
+	</target>
+
+	<!-- Build java commons, and copy the built lib -->
+	<target name="buildJavaCommons">
+		<exec executable="gradle" dir="${javacommons.lib.src.dir}">
+			<arg value="build"/>
+		</exec>
+		<antcall target="copyJavaCommonsLibs"/>
+	</target>
+
+	<!-- Does a clen build -->
+	<target name="cleanBuildJavaCommons">
+		<exec executable="gradle" dir="${javacommons.lib.src.dir}">
+			<arg value="clean"/>
+		</exec>
+		<antcall target="buildJavaCommons"/>
+	</target>
+
+	<!-- Copies over the java commons files, if newer -->
+	<target name="copyJavaCommonsLibs">
+		<copy todir="${webinf.lib.dir}">
+			<fileset dir="${javacommons.lib.build.dir}">
+				<!--<include name="picodedJavaCommons-libsOnly.jar"/>-->
+				<include name="*-all.jar"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<!--
+	#
+	# Project compilation
+	#
+	-->
+
+	<!-- compile the source -->
+	<target name="source" depends="init">
+		<path id="lib.path.ref">
+			<fileset dir="${lib.dir}" includes="*.jar" />
+		</path>
+
+		<javac destdir="${classes.dir}" classpathref="lib.path.ref" debug="true" debuglevel="lines,source"
+				 includeantruntime="false">
+			<!-- bootclasspath="./build-tools/rt-stubs/java-rt-jar-stubs-1.5.0.jar" -->
+			<compilerarg value="-Xlint:all"/>
+			<compilerarg value="-Xlint:-serial"/>
+			<src path="${src.dir}"/>
+			<exclude name="**/package-info.java"/>
+			<exclude name="**/*_test.java"/>
+		</javac>
+	</target>
+
+	<!--
+	#
+	# Unit test compilation / running
+	#
+	-->
+
+	<!-- ant contrib add ons -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml">
+		<classpath>
+			<pathelement location="${basedir}/build-tools/ant-contrib/ant-contrib-1.0b3.jar"/>
+		</classpath>
+	</taskdef>
+
+	<!-- jUnit declearation over-ride, see: 'http://stackoverflow.com/questions/9774264/junit-ant-task-junittask-was-not-found' -->
+	<!-- <path id="junit-path">
+		<fileset dir="${junit.lib}" includes="**/*.jar" />
+	</path>
+	<taskdef name="junit" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask">
+		<classpath refid="junit-path"/>
+	</taskdef>
+
+	<taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+		<classpath refid="junit-path"/>
+	</taskdef> -->
+
+	<!-- compile the source with picodedTests -->
+	<target name="compile-tests" depends="init">
+		<delete dir="${test.tmp.dir}" failonerror="false" includeemptydirs="true" followsymlinks="false" removenotfollowedsymlinks="true"/>
+		<mkdir dir="${test.tmp.dir}"/>
+
+		<path id="lib.test.ref">
+			<fileset dir="${lib.dir}" includes="*.jar" />
+			<!-- <fileset dir="${junit.lib}" includes="*.jar" /> -->
+		</path>
+
+		<javac destdir="${classes.dir}" classpathref="lib.test.ref" debug="true" debuglevel="lines,source"
+				 includeantruntime="false">
+ 			<compilerarg value="-Xlint:all"/>
+ 			<compilerarg value="-Xlint:-serial"/>
+			<src path="${src.dir}"/>
+			<src path="${test.src.dir}"/>
+			<exclude name="**/package-info.java"/>
+		</javac>
+	</target>
+
+	<!-- jUnit test report runner, used for continuous unit testing -->
+	<!-- <target name="junit-all" depends="compile-tests">
+		<mkdir dir="${junit.reports}"/>
+		<jacoco:coverage destfile="${junit.reports}/junit-all.exec">
+			<junit printsummary="yes" haltonfailure="yes" fork="true" forkmode="perTest" threads="16">
+				<classpath>
+					<pathelement path="${classes.dir}"/>
+					<fileset dir="build-tools/junit" includes="**/*.jar" />
+					<fileset dir="lib" includes="**/*.jar" />
+				</classpath>
+
+				<formatter type="plain"/>
+				<formatter type="xml"/>
+
+				<batchtest haltonfailure="no" todir="${junit.reports}">
+					<fileset dir="test">
+						<include name="**/*_test.java"/>
+						<exclude name="com/uilicious/standalone/**/*"/>
+					</fileset>
+					<formatter type="plain"/>
+					<formatter type="xml"/>
+				</batchtest>
+			</junit>
+		</jacoco:coverage>
+		<antcall target="junit-xml-fix"/>
+	</target> -->
+
+	<!-- Sanatize junit xml reports, and fix common issues -->
+	<target name="junit-xml-fix">
+		<!--
+			Sanatize the junit XML report, for ending > error, which occurs randomly
+			but frequently enough to be a real annoyance on jenkins
+		-->
+		<!-- <replace dir="${junit.reports}">
+			<include name="**/*.xml"/>
+			<replacetoken><![CDATA[</testsuite>
+>]]></replacetoken>
+			<replacevalue><![CDATA[</testsuite>]]></replacevalue>
+		</replace>
+		<replace dir="${junit.reports}">
+			<include name="**/*.xml"/>
+			<replacetoken><![CDATA[</testsuite>
+te>]]></replacetoken>
+			<replacevalue><![CDATA[</testsuite>]]></replacevalue>
+		</replace> -->
+
+	</target>
+
+	<!--
+	#
+	# Code quality
+	#
+	-->
+
+	<!-- Code Beautifier, used for pre-commit hook -->
+	<target name="src-beautify">
+		<!-- Scan and beautify the code : spaces only -->
+		<exec executable="java">
+			<arg value="-cp"/>
+			<arg value="./build-tools/java-formatter/java-formatter-with-dependencies.jar"/>
+			<arg value="Formatter"/>
+			<arg value="./build-config/code-format.opts"/>
+			<arg value="./src"/>
+		</exec>
+	</target>
+
+	<!-- War builder -->
+  <target name="build-war">
+	 <!-- Delete the old orgeva war file -->
+	 <delete file="test.war"/>
+
+	 <!-- Clean, then build, then copy the policy files into the classes folder -->
+	 <antcall target="clean"/>
+	 <antcall target="source"/>
+
+	 <!-- Finally create the war file -->
+	 <war destfile="test.war" webxml="web.xml">
+		<!-- Add any other files/folders needed -->
+		<zipfileset dir="" includes="classes/**/*.*" prefix="WEB-INF"/>
+		<zipfileset dir="" includes="config/**/*.*" prefix="WEB-INF"/>
+		<zipfileset dir="" includes="jsml/**/*.*" prefix="WEB-INF"/>
+		<zipfileset dir="" includes="lib/**/*.*" prefix="WEB-INF"/>
+		<zipfileset dir="" includes="page/**/*.*" prefix="WEB-INF"/>
+		<zipfileset dir="" includes="${webinf.lib.dir}/lib/**/*.*" prefix="WEB-INF"/>
+	 </war>
+  </target>
+
+	<!--
+	#
+	# Sam shortcuts
+	#
+	-->
+
+	<target name="c">
+		<antcall target="copyJavaCommonsLibs"/>
+		<antcall target="source"/>
+	</target>
+
+</project>
