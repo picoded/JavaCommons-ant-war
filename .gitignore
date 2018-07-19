@@ -2,8 +2,8 @@
 ##############################
 api.js
 /*/
-!/WEB-INF/*
-!/META-INF/*
+!/WEB-INF/
+!/META-INF/
 
 # Generated files (project) #
 #############################
@@ -11,3 +11,4 @@ workspace
 WEB-INF/classes
 WEB-INF/test-files/tmp/*
 WEB-INF/test-files/junit-reports/*
+WEB-INF/lib
