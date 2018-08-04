@@ -1,9 +1,0 @@
-{
-	// Folder to store the various project folders
-	"path": "./storage/healthcheck",
-
-	"writeFileName": "testWriteFile.txt",
-	"readFileName": "testReadFile.txt",
-	"readFileContent": "testing file"
-
-}
